@@ -9,4 +9,4 @@ Key GCP packages necessary for .venv :
     - `google-cloud-aiplatform`
     - `google-cloud-bigquery`
     - `google-cloud-storage`
-
+    - `python-dotenv`
