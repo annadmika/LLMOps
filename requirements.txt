@@ -1,0 +1,7 @@
+# Requirements for the llmops project
+# Runtime dependencies
+google-cloud-aiplatform>=1.120.0
+google-cloud-bigquery>=3.38.0
+google-cloud-storage>=2.19.0
+python-dotenv>=1.0.0
+
