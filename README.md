@@ -1,7 +1,7 @@
 # LLMOps
 LLMOps course project
 
-Python version is : 3.13
+Python version is : 3.11.6
 
 Virtual environment managed with [uv](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_1) as a package manager
 
