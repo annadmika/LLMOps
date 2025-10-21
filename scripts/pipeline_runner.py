@@ -1,7 +1,13 @@
 """Pipeline compilation and submission utilities for Vertex AI."""
+import sys
+from pathlib import Path
 
-from dotenv import load_dotenv
-load_dotenv()  # must run first
+# Ensure repo root is on sys.path so 'src' imports work when running the script directly.
+repo_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(repo_root))
+
+from google.cloud import aiplatform
+from kfp import compiler
 
 from src.constants import (
     PIPELINE_ROOT_PATH,
@@ -9,19 +15,12 @@ from src.constants import (
     RAW_DATASET_URI,
     REGION,
 )
-
-import os
-print("GCP_BUCKET_NAME =", os.getenv("GCP_BUCKET_NAME"))
-
-from google.cloud import aiplatform
-from kfp import compiler
-
 from src.pipelines.model_training_pipeline import model_training_pipeline
 
 if __name__ == "__main__":
     aiplatform.init(project=PROJECT_ID, location=REGION)
 
-    pipeline_name = "anna_mika_model_training_pipeline"
+    pipeline_name = "amika_model_training_pipeline"
     compiler.Compiler().compile(
         pipeline_func=model_training_pipeline,  # type: ignore
         package_path=f"{pipeline_name}.json",
