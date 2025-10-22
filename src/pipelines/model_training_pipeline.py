@@ -10,7 +10,7 @@ from src.pipeline_components.fine_tuning_component import fine_tuning_component
 from src.pipeline_components.inference_component import inference_component
 
 
-@pipeline(name="anna_pavel_project-model-training-pipeline")
+@pipeline(name="anna_pavel_project_pipeline")
 def model_training_pipeline(
     raw_dataset_uri: str,
 ) -> None:
