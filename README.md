@@ -1,5 +1,8 @@
 # LLMOps
-LLMOps course project
+LLMOps course project - training an LLM using Google Cloud Storage and Vertex AI
+
+Pre-trained model used : 
+
 
 Python version is : 3.11.6
 

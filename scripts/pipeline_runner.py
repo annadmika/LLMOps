@@ -20,7 +20,7 @@ from src.pipelines.model_training_pipeline import model_training_pipeline
 if __name__ == "__main__":
     aiplatform.init(project=PROJECT_ID, location=REGION)
 
-    pipeline_name = "amika_model_training_pipeline"
+    pipeline_name = "amika_project_model_training_pipeline"
     compiler.Compiler().compile(
         pipeline_func=model_training_pipeline,  # type: ignore
         package_path=f"{pipeline_name}.json",
