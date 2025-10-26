@@ -19,6 +19,7 @@ def model_training_pipeline(
         train_test_split_ratio=0.1,
         raw_dataset_uri=raw_dataset_uri,
     )  # type: ignore
+    data_transformation_task.set_caching_options(False)
 
     fine_tuning_task = fine_tuning_component(
         dataset=data_transformation_task.outputs["train_dataset"]

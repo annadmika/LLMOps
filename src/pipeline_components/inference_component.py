@@ -98,7 +98,11 @@ def inference_component(
     ).eval()
 
     logger.info(f"Loading dataset from {dataset.path}...")
-    test_dataset = pd.read_csv(dataset.path).assign(
+    # OutputPath provides a directory, so we need to read the file inside
+    import os
+    dataset_file = os.path.join(dataset.path, "test_dataset.csv")
+    logger.info(f"Reading from {dataset_file}...")
+    test_dataset = pd.read_csv(dataset_file).assign(
         messages=lambda df: df["messages"].apply(lambda x: eval(x.replace("\n", ",")))
     )
 
@@ -111,7 +115,7 @@ def inference_component(
                 model_instance,
                 tokenizer,
                 build_prompt(tokenizer, user_input),
-                max_new_tokens=64,
+                max_new_tokens=768,  # Matched to training max_length
             )
         )
         predictions_df.append(

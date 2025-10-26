@@ -17,7 +17,7 @@ def data_transformation_component(
     train_dataset: OutputPath("Dataset"),  # type: ignore
     test_dataset: OutputPath("Dataset"),  # type: ignore
 ) -> None:
-    """Format and split Yoda Sentences for Phi-3 fine-tuning."""
+    """Format and split Tarot Reading dataset for Phi-3 fine-tuning."""
     import logging
 
     import pandas as pd
@@ -30,15 +30,13 @@ def data_transformation_component(
             """Format a single example to Phi messages structure."""
             converted_sample = [
                 {"role": "user", "content": examples["prompt"]},
-                {"role": "assistant", "content": examples["completion"]},
+                {"role": "assistant", "content": examples["response"]},
             ]
             return {"messages": converted_sample}
 
         return (
-            dataset.rename_column("sentence", "prompt")
-            .rename_column("translation_extra", "completion")
-            .map(format_dataset)
-            .remove_columns(["prompt", "completion", "translation"])
+            dataset.map(format_dataset)
+            .remove_columns(["prompt", "response"])
         )
 
     logging.basicConfig(level=logging.INFO)
@@ -52,10 +50,15 @@ def data_transformation_component(
     formatted_dataset = format_dataset_to_phi_messages(dataset)
     split_dataset = formatted_dataset.train_test_split(test_size=train_test_split_ratio)
 
-    logger.info(f"Writing train dataset to {train_dataset}...")
-    split_dataset["train"].to_csv(train_dataset, index=False)
+    # OutputPath provides a directory, so we need to append a filename
+    import os
+    train_file = os.path.join(train_dataset, "train_dataset.csv")
+    test_file = os.path.join(test_dataset, "test_dataset.csv")
+    
+    logger.info(f"Writing train dataset to {train_file}...")
+    split_dataset["train"].to_csv(train_file, index=False)
 
-    logger.info(f"Writing test dataset to {test_dataset}...")
-    split_dataset["test"].to_csv(test_dataset, index=False)
+    logger.info(f"Writing test dataset to {test_file}...")
+    split_dataset["test"].to_csv(test_file, index=False)
 
     logger.info("Data transformation process completed successfully")

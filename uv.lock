@@ -151,6 +151,43 @@ wheels = [
 ]
 
 [[package]]
+name = "amika-llmops"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "accelerate" },
+    { name = "datasets" },
+    { name = "dotenv" },
+    { name = "google-cloud" },
+    { name = "google-cloud-aiplatform" },
+    { name = "google-cloud-bigquery" },
+    { name = "google-cloud-storage" },
+    { name = "kfp" },
+    { name = "peft" },
+    { name = "python-dotenv" },
+    { name = "torch" },
+    { name = "transformers" },
+    { name = "trl" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "accelerate", specifier = ">=1.10.1" },
+    { name = "datasets", specifier = ">=4.2.0" },
+    { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "google-cloud", specifier = ">=0.34.0" },
+    { name = "google-cloud-aiplatform", specifier = ">=1.121.0" },
+    { name = "google-cloud-bigquery", specifier = ">=3.38.0" },
+    { name = "google-cloud-storage", specifier = ">=2.19.0" },
+    { name = "kfp", specifier = ">=2.14.6" },
+    { name = "peft", specifier = ">=0.17.1" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
+    { name = "torch", specifier = ">=2.9.0" },
+    { name = "transformers", specifier = ">=4.57.1" },
+    { name = "trl", specifier = ">=0.24.0" },
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -935,37 +972,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/82/3c/9f29f6cab7f35df8e54f019e5719465fa97b877be2454e99f989270b4f34/kubernetes-30.1.0.tar.gz", hash = "sha256:41e4c77af9f28e7a6c314e3bd06a8c6229ddd787cad684e0ab9f69b498e98ebc", size = 887810, upload-time = "2024-06-06T15:58:30.031Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/2027ddede72d33be2effc087580aeba07e733a7360780ae87226f1f91bd8/kubernetes-30.1.0-py2.py3-none-any.whl", hash = "sha256:e212e8b7579031dd2e512168b617373bc1e03888d41ac4e04039240a292d478d", size = 1706042, upload-time = "2024-06-06T15:58:27.13Z" },
-]
-
-[[package]]
-name = "llmops"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "datasets" },
-    { name = "dotenv" },
-    { name = "google-cloud" },
-    { name = "google-cloud-aiplatform" },
-    { name = "google-cloud-bigquery" },
-    { name = "google-cloud-storage" },
-    { name = "kfp" },
-    { name = "peft" },
-    { name = "python-dotenv" },
-    { name = "transformers" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "datasets", specifier = ">=4.2.0" },
-    { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "google-cloud", specifier = ">=0.34.0" },
-    { name = "google-cloud-aiplatform", specifier = ">=1.121.0" },
-    { name = "google-cloud-bigquery", specifier = ">=3.38.0" },
-    { name = "google-cloud-storage", specifier = ">=2.19.0" },
-    { name = "kfp", specifier = ">=2.14.6" },
-    { name = "peft", specifier = ">=0.17.1" },
-    { name = "python-dotenv", specifier = ">=1.1.1" },
-    { name = "transformers", specifier = ">=4.57.1" },
 ]
 
 [[package]]
@@ -2300,6 +2306,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/38/db80e48b9220c9bce872b0f616ad0446cdf554a40b85c7865cbca99ab3c2/triton-3.5.0-cp313-cp313t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c83f2343e1a220a716c7b3ab9fccfcbe3ad4020d189549200e2d2e8d5868bed9", size = 170577179, upload-time = "2025-10-13T16:38:17.865Z" },
     { url = "https://files.pythonhosted.org/packages/ff/60/1810655d1d856c9a4fcc90ee8966d85f552d98c53a6589f95ab2cbe27bb8/triton-3.5.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:da0fa67ccd76c3dcfb0bffe1b1c57c685136a6bd33d141c24d9655d4185b1289", size = 170487949, upload-time = "2025-10-13T16:38:24.881Z" },
     { url = "https://files.pythonhosted.org/packages/fb/b7/1dec8433ac604c061173d0589d99217fe7bf90a70bdc375e745d044b8aad/triton-3.5.0-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:317fe477ea8fd4524a6a8c499fb0a36984a56d0b75bf9c9cb6133a1c56d5a6e7", size = 170580176, upload-time = "2025-10-13T16:38:31.14Z" },
+]
+
+[[package]]
+name = "trl"
+version = "0.24.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "accelerate" },
+    { name = "datasets" },
+    { name = "transformers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/2e/30ece0055eee5763126e2d52f6e04aec294bcae34b46d9ca16c53c4b5852/trl-0.24.0.tar.gz", hash = "sha256:eee495223725d3da0596be2607581969db89ba0f7c00b075802addc31e61eac9", size = 368447, upload-time = "2025-10-16T00:10:37.65Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/5f/c647fedde9d59ae35ee189cc49e419da5ac1d9ad9933cb69401a7eac4705/trl-0.24.0-py3-none-any.whl", hash = "sha256:a9145b7d4a4a33778de117bda48530f0cf5b2ac25acc07db80ad04836f490dfc", size = 423143, upload-time = "2025-10-16T00:10:35.809Z" },
 ]
 
 [[package]]

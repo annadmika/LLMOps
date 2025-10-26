@@ -5,6 +5,7 @@ description = "LLMOps project env requirements"
 readme = "README.md"
 requires-python = ">=3.11.6"
 dependencies = [
+    "accelerate>=1.10.1",
     "datasets>=4.2.0",
     "dotenv>=0.9.9",
     "google-cloud>=0.34.0",
@@ -14,5 +15,7 @@ dependencies = [
     "kfp>=2.14.6",
     "peft>=0.17.1",
     "python-dotenv>=1.1.1",
+    "torch>=2.9.0",
     "transformers>=4.57.1",
+    "trl>=0.24.0",
 ]
