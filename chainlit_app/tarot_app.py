@@ -1,4 +1,4 @@
-"""🌙 Tarot Oracle — Chainlit app connected to your fine-tuned Phi-3-mini model on Vertex AI, with safe intent guard & optional Gemini Judge."""
+"""🌙 Tarot Oracle — Chainlit app connected to your fine-tuned Phi-3-mini model on Vertex AI with human feedback."""
 
 import os
 import re
@@ -7,52 +7,35 @@ import asyncio
 import subprocess
 import requests
 import chainlit as cl
-
 from chainlit.message import Message
 from transformers import AutoTokenizer
-
-# ---- Optional dependencies: degrade gracefully if missing ----
-INTENT_EMBEDDER = None
-UTIL = None
-try:
-    from sentence_transformers import SentenceTransformer, util
-    INTENT_EMBEDDER = SentenceTransformer("all-MiniLM-L6-v2")
-    UTIL = util
-except Exception:
-    INTENT_EMBEDDER = None
-    UTIL = None
-
-# ---- Optional Gemini Judge (skips if no API key or SDK) ----
-GEMINI_OK = False
-try:
-    import google.generativeai as genai
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-    if GEMINI_API_KEY:
-        genai.configure(api_key=GEMINI_API_KEY)
-        GEMINI_OK = True
-except Exception:
-    GEMINI_OK = False
-
+from dotenv import load_dotenv
+from langfuse import Langfuse, observe  # Langfuse tracing
 
 # ======================================================
-# CONFIGURATION
+# ENV + LANGFUSE INIT
+# ======================================================
+load_dotenv()
+
+langfuse = Langfuse(
+    public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
+    secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
+    host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+    blocked_instrumentation_scopes=["chainlit"],  # ✅ prevents infinite recursion
+)
+
+# ======================================================
+# MODEL + PROMPT CONFIG
 # ======================================================
 MODEL_REPO_ID = "microsoft/Phi-3-mini-4k-instruct"
-ENDPOINT_ID = "2842752129242759168"  # your deployed endpoint
+ENDPOINT_ID = "2842752129242759168"
 PROJECT_NUMBER = "llm-ops-475209"
 REGION = "europe-west2"
-
 ENDPOINT_URL = (
     f"https://{REGION}-aiplatform.googleapis.com/v1/projects/"
     f"{PROJECT_NUMBER}/locations/{REGION}/endpoints/{ENDPOINT_ID}:predict"
 )
-
-DEFAULT_GEN = {
-    "max_new_tokens": 512,
-    "temperature": 0.7,
-    "top_p": 0.9,
-    "do_sample": True,
-}
+DEFAULT_GEN = {"max_new_tokens": 512, "temperature": 0.7, "top_p": 0.9, "do_sample": True}
 
 SYSTEM_PROMPT = (
     "You are The Oracle — a mystical tarot reader. "
@@ -64,85 +47,55 @@ SYSTEM_PROMPT = (
 
 TOKENIZER = AutoTokenizer.from_pretrained(MODEL_REPO_ID)
 
-THINKING_MESSAGES = [
-    "🔮 *The oracle is reading your fortune...*",
-    "🌙 *The cards are revealing their secrets...*",
-    "✨ *The winds of fate are whispering to me softly...*",
-    "🕯️ *The veil between worlds is growing thin...*",
-    "🌌 *The stars are aligning to reveal your path...*",
-]
+# ======================================================
+# FEEDBACK LOGGING HELPER
+# ======================================================
+def log_feedback(user_input: str, model_output: str, rating: int, comment: str | None = None):
+    """Log human feedback to Langfuse."""
+    try:
+        langfuse.feedback(
+            name="oracle_human_feedback",
+            value=rating,
+            comment=comment or "User feedback on Oracle response",
+            metadata={
+                "user_input": user_input,
+                "oracle_output": model_output,
+            },
+        )
+        print(f"🌟 Logged feedback ({rating}) to Langfuse successfully.")
+    except Exception as e:
+        print(f"⚠️ Could not log feedback: {e}")
 
 # ======================================================
-# INTENT DETECTION
+# STARTUP INTRO MESSAGE
 # ======================================================
-TAROT_PROMPTS = [
-    "What will happen in my relationship? I pulled the cards...",
-    "What should I focus on in the coming months?",
-    "I pulled the cards ... what does it mean?",
-    "Can you interpret my tarot spread?",
-    "I drew these cards: ... what does this mean?",
-]
-KEYWORDS = {"card", "cards", "tarot", "spread", "pulled", "drew", "reading", "upright", "reversed"}
-
-def is_tarot_query(user_input: str, threshold: float = 0.45) -> bool:
-    text = user_input.lower()
-    # quick lexical check
-    if any(k in text for k in KEYWORDS):
-        return True
-    # semantic check if available
-    if INTENT_EMBEDDER and UTIL:
-        q = INTENT_EMBEDDER.encode(user_input, convert_to_tensor=True)
-        refs = INTENT_EMBEDDER.encode(TAROT_PROMPTS, convert_to_tensor=True)
-        sim = UTIL.cos_sim(q, refs)
-        max_sim = float(sim.max().item())
-        return max_sim >= threshold
-    # fallback: be permissive if no embedder
-    return True
-
-
-# ======================================================
-# STARTUP
-# ======================================================
-@cl.set_starters
-async def set_starters():
-    return [
-        cl.Starter(label="General Guidance", message="What should I focus on in the coming months?"),
-        cl.Starter(label="Career Question", message="What will happen if I change jobs this year?"),
-        cl.Starter(
-            label="Relationship Reading",
-            message="What will happen in my relationship? I pulled the cards 7 of cups upright, the tower reversed, and the 3 of wands.",
-        ),
-    ]
-
 @cl.on_chat_start
-async def on_start():
+async def on_chat_start():
+    """Mystical introduction when the app launches."""
     cl.user_session.set("history", [])
-    cl.user_session.set("gen", DEFAULT_GEN.copy())
     intro = (
         "🌙 *The Oracle awakens...*\n\n"
-        "Ask your question, and tell me the cards you have drawn... "
+        "Ask your question, and tell me the cards you have drawn — "
         "The mists of fate are listening. 🔮"
     )
     await cl.Message(content=intro, author="The Oracle").send()
-
 
 # ======================================================
 # MAIN MESSAGE HANDLER
 # ======================================================
 @cl.on_message
 async def handle_message(message: Message):
+    """Handle user messages with automatic Langfuse tracing and human feedback."""
     user_text = message.content.strip()
 
-    # Guardrail: require tarot-like input
-    if not is_tarot_query(user_text):
-        await cl.Message(
-            author="The Oracle",
-            content="✨ I'm sorry, dear one — I’m here to read your tarot spread. Please share your question **and** the cards you have drawn (e.g., “I pulled The Tower reversed, 7 of Cups upright, and 3 of Wands”)."
-        ).send()
-        return
-
-    # Thinking animation
-    thinking_text = random.choice(THINKING_MESSAGES)
+    # 🌙 Display animated thinking message
+    thinking_text = random.choice([
+        "🔮 The oracle is reading your fortune...",
+        "🌙 The cards are revealing their secrets...",
+        "✨ The winds of fate are whispering softly...",
+        "🕯️ The veil between worlds grows thin...",
+        "🌌 The stars are aligning to reveal your path...",
+    ])
     thinking = cl.Message(
         content=f"<span class='oracle-thinking'>{thinking_text}</span>",
         author="The Oracle"
@@ -150,168 +103,112 @@ async def handle_message(message: Message):
     await thinking.send()
 
     try:
-        # run model call off-thread
-        model_reply = await asyncio.to_thread(call_model_api, user_text)
+        # 🔮 Call model (runs in a background thread)
+        reply = await asyncio.to_thread(call_model_api, user_text)
         await thinking.remove()
 
-        # stream oracle reply
+        # ✨ Typing animation for Oracle's response
         oracle_msg = cl.Message(content="", author="The Oracle")
         await oracle_msg.send()
-
-        paragraphs = model_reply.split("\n\n")
-        for paragraph in paragraphs:
-            if not paragraph.strip():
+        for para in reply.split("\n\n"):
+            if not para.strip():
                 continue
-            for word in paragraph.split():
+            for word in para.split():
                 oracle_msg.content += word + " "
                 await oracle_msg.update()
-                # natural pacing
-                if word.endswith((",", ";")):
-                    await asyncio.sleep(random.uniform(0.12, 0.2))
-                elif word.endswith((".", "!", "?")):
-                    await asyncio.sleep(random.uniform(0.25, 0.45))
-                elif "…" in word or "..." in word:
-                    await asyncio.sleep(random.uniform(0.35, 0.55))
-                else:
-                    await asyncio.sleep(random.uniform(0.03, 0.06))
+                await asyncio.sleep(random.uniform(0.03, 0.07))
             oracle_msg.content += "\n\n"
             await oracle_msg.update()
-            await asyncio.sleep(random.uniform(0.45, 0.85))
+            await asyncio.sleep(random.uniform(0.3, 0.7))
 
-        await oracle_msg.update()
+        # 🌟 Ask for user feedback
+        feedback_actions = [
+            cl.Action(name="rating_1", payload={"rating": 1}, label="💤 Confusing"),
+            cl.Action(name="rating_2", payload={"rating": 2}, label="🌫️ Vague"),
+            cl.Action(name="rating_3", payload={"rating": 3}, label="🌙 Decent"),
+            cl.Action(name="rating_4", payload={"rating": 4}, label="🔮 Insightful"),
+            cl.Action(name="rating_5", payload={"rating": 5}, label="🌟 Enlightening"),
+        ]
 
-        # Judge (optional)
-        if GEMINI_OK:
-            judge_feedback = await ask_gemini_judge(user_text, model_reply)
-            await cl.Message(content=f"🧠 **Gemini Judge Verdict**\n{judge_feedback}", author="LLM Judge").send()
+        result = await cl.AskActionMessage(
+            content="✨ How did this reading feel to you?",
+            actions=feedback_actions,
+            timeout=180,
+        ).send()
+
+        # In some Chainlit versions, result is a dict like {"rating": 3}
+        if result and isinstance(result, dict) and "rating" in result:
+            rating = int(result["rating"])
+            await cl.Message(content=f"Thank you for your feedback! ({rating}/5)").send()
+            print(f"🧭 Feedback received: {rating}")
+            log_feedback(user_text, reply, rating)
+
+        # In newer versions, result may be an Action object
+        elif result and hasattr(result, "payload") and "rating" in result.payload:
+            rating = int(result.payload["rating"])
+            await cl.Message(content=f"Thank you for your feedback! ({rating}/5)").send()
+            print(f"🧭 Feedback received: {rating}")
+            log_feedback(user_text, reply, rating)
+
         else:
-            # silently skip if Gemini not configured
-            pass
+            print("⚠️ No feedback received or timeout.")
+
+
+
 
     except Exception as e:
         await thinking.remove()
         await cl.Message(content=f"⚠️ Error:\n{e}", author="The Oracle").send()
 
-
 # ======================================================
-# GEMINI JUDGE (optional, safe)
+# MODEL CALL 
 # ======================================================
-async def ask_gemini_judge(user_input: str, model_output: str) -> str:
-    try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        prompt = f"""
-        You are a tarot reading evaluator.
-
-        Evaluate the following reading for:
-        - Relevance to the user's question
-        - Accuracy of interpretation
-        - Empathy and mystical tone
-        - Coherence and overall quality
-
-        Return:
-        Score: <number from 1–10>
-        Feedback: <1–2 short sentences>
-
-        ---
-        User's question:
-        {user_input}
-
-        Oracle's response:
-        {model_output}
-        ---
-        """
-        resp = model.generate_content(
-            contents=prompt,
-            generation_config=genai.GenerationConfig(
-                temperature=0.4, top_p=0.9, max_output_tokens=256
-            ),
-        )
-        text = (resp.text or "").strip() or "No response from Gemini."
-        return text
-    except Exception as e:
-        return f"⚠️ Gemini Judge Error: {e}"
-
-
-# ======================================================
-# MODEL CALL — Vertex AI endpoint
-# ======================================================
+@observe(name="Tarot Reading Generation")
 def call_model_api(user_input: str) -> str:
-    # get OAuth token
-    access_token = subprocess.check_output(
-        ["gcloud", "auth", "print-access-token"], text=True
-    ).strip()
+    """Send user input to the Vertex AI model with automatic Langfuse logging."""
+    tokenizer = TOKENIZER
+    access_token = subprocess.check_output(["gcloud", "auth", "print-access-token"], text=True).strip()
 
-    # build chat messages
-    history = cl.user_session.get("history") or []
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(history)
+    langfuse.update_current_span(input=user_input)
 
-    user_prompt = (
-        "The querent asks for a tarot reading. "
-        "Read the following question and respond directly as The Oracle.\n\n"
-        f"User's question: {user_input}"
-    )
-    messages.append({"role": "user", "content": user_prompt})
+    with langfuse.start_as_current_generation(name="Vertex AI Tarot Generation") as gen:
+        history = cl.user_session.get("history") or []
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}, *history]
+        messages.append({"role": "user", "content": user_input})
 
-    templated_input = TOKENIZER.apply_chat_template(
-        messages, tokenize=False, add_generation_prompt=True
-    )
+        templated_input = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        payload = {"instances": [{"input": templated_input}], "parameters": DEFAULT_GEN}
 
-    payload = {
-        "instances": [{"input": templated_input}],
-        "parameters": DEFAULT_GEN,
-    }
+        response = requests.post(
+            ENDPOINT_URL,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=300,
+        ).json()
 
-    resp = requests.post(
-        ENDPOINT_URL,  # <-- keep as string (DO NOT .encode())
-        headers={
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json; charset=utf-8",
-        },
-        json=payload,
-        timeout=300,
-    )
+        raw = response["predictions"][0]
+        text = extract_response(raw).strip() or "✨ The cards whisper softly..."
 
-    if resp.status_code != 200:
-        raise RuntimeError(f"HTTP {resp.status_code}: {resp.text}")
-
-    data = resp.json()
-    try:
-        pred = data["predictions"][0]
-    except (KeyError, IndexError):
-        raise RuntimeError(f"Unexpected response: {data}")
-
-    if isinstance(pred, str):
-        raw = pred
-    elif isinstance(pred, dict):
-        raw = (
-            pred.get("generated_text")
-            or pred.get("content")
-            or pred.get("output_text")
-            or pred.get("text")
-            or ""
+        gen.update(
+            input=templated_input,
+            output=text,
+            model=response.get("modelDisplayName", "phi-3-mini"),
+            metadata={"endpoint": ENDPOINT_ID, **DEFAULT_GEN},
         )
-    else:
-        raw = str(pred)
 
-    text = (extract_response(raw) or raw).strip()
-    if not text:
-        text = "✨ The cards whisper softly... but no words reach you this time."
-
-    # maintain short history
+    langfuse.update_current_span(output={"oracle_response": text})
     history.append({"role": "user", "content": user_input})
     history.append({"role": "assistant", "content": text})
     cl.user_session.set("history", history[-6:])
-
     return text
-
 
 # ======================================================
 # TEXT CLEANING
 # ======================================================
 def extract_response(generated_text: str) -> str:
-    if "<|assistant|>" in generated_text:
-        matches = re.findall(r"(?:<\|assistant\|>)([^<]*)", generated_text)
-        if matches:
-            return matches[0]
-    return generated_text
+    """Extract clean assistant response text from Phi-3 output."""
+    match = re.search(r"(?:<\|assistant\|>)([^<]*)", generated_text)
+    return match.group(1) if match else generated_text

@@ -4,7 +4,7 @@ from google.cloud import aiplatform
 PROJECT_ID = "llm-ops-475209"
 REGION = "europe-west2"
 PIPELINE_ROOT = "gs://anna-pavel-bucket/pipeline_root"
-PREDICTIONS_URI = "gs://anna-pavel-bucket/vertexai-pipeline-root/54825872111/anna-pavel-project-pipeline-20251026003411/inference-component_4846667871079628800/predictions"  # ← paste from Step 1
+PREDICTIONS_URI = "gs://anna-pavel-bucket/vertexai-pipeline-root/54825872111/anna-pavel-project-pipeline-20251025154330/inference-component_-8644427762662113280/predictions"
 
 aiplatform.init(project=PROJECT_ID, location=REGION)
 
