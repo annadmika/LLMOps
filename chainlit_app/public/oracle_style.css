@@ -1,0 +1,142 @@
+/* ==========================================================
+   🌙 GLOBAL EFFECTS & BACKGROUND
+   ========================================================== */
+
+/* Mystical full-app background */
+body {
+  background-image: url("/public/background.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center center;
+  background-color: #0e0b16; /* fallback */
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle at center, rgba(50, 0, 80, 0.3) 0%, rgba(0, 0, 0, 0.8) 100%);
+  z-index: -1;
+}
+
+/* Soft scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(180, 160, 255, 0.3);
+  border-radius: 8px;
+}
+
+/* ==========================================================
+   💬 MESSAGE STYLES — user + oracle
+   ========================================================== */
+
+.message {
+  animation: fadeInBubble 0.4s ease-in-out;
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+}
+
+@keyframes fadeInBubble {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* User messages (your own text) */
+.message.user {
+  background-color: rgba(230, 230, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px 16px 2px 16px;
+  padding: 12px 16px;
+  max-width: 70%;
+  margin-left: auto;
+  margin-right: 12px;
+  box-shadow: 0 0 8px rgba(180, 160, 255, 0.2);
+}
+
+/* Oracle responses — opaque lavender bubble */
+.message.assistant {
+  background-color: rgba(210, 190, 255, 0.9);
+  border: 2px solid rgba(220, 200, 255, 0.5);
+  border-radius: 20px 20px 20px 8px;
+  padding: 14px 18px;
+  max-width: 75%;
+  margin-right: auto;
+  margin-left: 12px;
+  color: #2e2152; /* deep violet text */
+  font-weight: 500;
+  transition: all 0.3s ease-in-out;
+  box-shadow:
+    0 0 10px rgba(200, 180, 255, 0.6),
+    0 0 25px rgba(170, 150, 255, 0.3);
+}
+
+.message.assistant:hover {
+  box-shadow:
+    0 0 14px rgba(220, 200, 255, 0.8),
+    0 0 30px rgba(180, 160, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.avatar img {
+  border-radius: 12px;
+}
+
+/* ==========================================================
+   🔮 ORACLE “THINKING” EFFECT — Fade-in + Gentle Pulse
+   ========================================================== */
+
+/* 🌙 The Oracle’s whisper — soft fade-in with glow */
+.oracle-thinking {
+  display: inline-block;
+  opacity: 0;
+  color: #f2e7ff;
+  font-style: italic;
+  text-shadow: 0 0 14px #c299ff, 0 0 28px #b58aff;
+  animation:
+    fadeWhisper 2.5s ease-in forwards,  /* smooth fade in */
+    pulseGlow 3s ease-in-out infinite 2.5s; /* continuous soft glow after */
+}
+
+/* ✨ Smooth mystical fade-in */
+@keyframes fadeWhisper {
+  0% {
+    opacity: 0;
+    filter: blur(6px);
+    text-shadow: 0 0 24px #b78cff;
+  }
+  50% {
+    opacity: 0.7;
+    filter: blur(3px);
+    text-shadow: 0 0 18px #cfa9ff;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    text-shadow: 0 0 14px #d6baff, 0 0 28px #c299ff;
+  }
+}
+
+/* 💫 Gentle breathing glow loop */
+@keyframes pulseGlow {
+  0% {
+    opacity: 0.9;
+    text-shadow:
+      0 0 8px #b58aff,
+      0 0 16px #c299ff;
+  }
+  50% {
+    opacity: 1;
+    text-shadow:
+      0 0 16px #d6baff,
+      0 0 30px #e4d2ff;
+  }
+  100% {
+    opacity: 0.9;
+    text-shadow:
+      0 0 8px #b58aff,
+      0 0 16px #c299ff;
+  }
+}

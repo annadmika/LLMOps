@@ -207,13 +207,13 @@ hyperparameters = {
 
 ### Cost Efficiency
 
-| Test | Hours | Cost | BLEU Points Gained | Cost per Point |
-|------|-------|------|-------------------|----------------|
-| TEST 1 | 0.17 | ~$0.27 | 30.25 | $0.009 |
-| TEST 2 | 6.0 | ~$9.60 | +15.69 | $0.61 |
-| TEST 3 | 3.7 | ~$5.86 | +15.12 | $0.39 |
+| Test | Hours | Cost | BLEU Points Gained | Cost per Incremental Point |
+|------|-------|------|--------------------|---------------------------|
+| TEST 1 | 0.17 | ~$0.27 | 30.25 (baseline) | - |
+| TEST 2 | 6.0 | ~$9.60 | +15.69 from TEST 1 | **$0.61** |
+| TEST 3 | 3.7 | ~$5.86 | +15.12 from TEST 2 | **$0.39** |
 
-**Observation**: TEST 3 was more cost-efficient than TEST 2 despite having 2× more data!
+**Observation**: TEST 3 was more cost-efficient than TEST 2 despite having 2× more data! Each incremental BLEU point cost 36% less in TEST 3.
 
 ---
 
